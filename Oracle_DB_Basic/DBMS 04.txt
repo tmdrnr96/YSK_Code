@@ -1,0 +1,210 @@
+--SQL 자료형
+1) NUMBER
+ - DB에 숫자데이터를 저장하기 위해 제공되는 자료형
+2) VARCHAR : 고정길이의 문장데이터를 저장하므로 메모리 낭비가 심하다.
+3) VARCHAR2 : 가변길이의 문자데이터를 저장하므로 메모리 낭비가 줄어든다.
+ - DB에 문장데이터를 저장하기 위한 자료형
+
+-- id VARCHAR2(20) : 20바이트까지 저장할 수 있는 문자형식의 id 컬럼
+-- VARCHAR (20) : abc를 등록했을 때, 17바이트가 DB에 남는다
+-- VARCHAR2 (20) : abc를 등록했을 때, 17바이트는 알아서 DB에서 제거 된다.
+--          	(VARCHAR보다 VARCHAR2가 더 효울적이다.)
+
+4) DATE : 날짜형식의 데이터를 저장하기 위한 자료형
+5) CLOB : 가변길이의 문장데이터를 저장하며 최대 4GB이상의 텍스트 데이터를 저장할 수 있다.
+-  예를 들어 자기 소개서를 쓴다고 가정할 때 (2000자를 쓴다고 가정) 
+- VARCHAR2로 쓴다면  VARCHAR2(5000)라고 써야하지만 CLOB을 쓰면 글자 제한없이
+4GB내에서 자유롭게 쓸 수 있다.
+
+--임시테이블
+create table person(
+	idx NUMBER(3) primary key,
+	 -- 999 id number(3, 2)로 만들면 999.99 소수점으로도 만들수 있음
+	name VARCHAR2(50),
+	regidate DATE,
+	-- 날짜가 들어간다..
+	age NUMBER(3)
+	
+);
+
+-- primary key : 기본키 
+-- 고유의 식별자로써 속성에 대한 중복을 방지하는 키
+-- candidate key : 후보키 (디폴트 값)
+-- name, age 등 기본키가 될 자격이 있는 컬럼들 
+-- foreign key : 외래키
+-- 한 테이블의 컬럼이 다른 테이블의 기본키가 되는 것을 의미
+---------------------------------------------------------------------------------------------------
+9. Join : 데이터베이스에서 테이블과 테이블간의 연결을 위한 연결성을 제공하기 위한 쿼리문
+
+예문) 각 부서가 위치하고 있는 도시명을 출력해보자!
+select d.department_id, d.department_name, l.city 
+from departments d, locations l 
+where d.location_id = l.location_id;
+
+예문) 사원테이블에서 각 부서번호에 해당되는 실제 부서의 이름을 가져와보자!
+select emp.first_name, emp.department_id, dep.department_id, dep.department_name
+from employees emp, departments dep
+where emp.department_id = dep.department_id;  
+
+문제) 사원테이블에서 직종이 'IT_PROG'인 사원들의 정보를 사번, 이름, 직종, 급여, 
+부서명, 도시명 순으로 출력하자!!
+
+select e.employee_id, e.first_name, e.job_id, e.salary, d.department_name, l.city
+from employees e, departments d, locations l
+where d.department_id = e.department_id and d.location_id = l.location_id 
+and e.job_id = 'IT_PROG';
+
+문제) 지역(locations) 테이블로부터 department_name과 city를 출력하되
+부서테이블과 지역테이블의 location_id가 같은 경우에만 출력
+
+select d.department_name, l.city 
+from locations l, departments d
+where l.location_id = d.location_id;
+
+문제) 사원, 부서, 지역 테이블로부터 이름, 이메일, 부서번호, 부서이름, 지역번호(location_id),city
+정보를 화면에 출력하되, 부서번호와 지역번호가 일치하며 city가 'Seattle'인 경우의 결과를 출력
+
+select e.first_name, e.email, e.department_id, d.department_name, d.location_id, l.city
+from employees e, departments d, locations l
+where e.department_id = d.department_id and d.location_id = l.location_id
+and l.city='Seattle';
+
+---------------------------------------------------------------------------------------------------
+
+10.view : 가상의 테이블
+ - 본래 테이블에는 존재하지 않는 정보를 추가로 기입하여 조회하기 위한 용도로 사용하는
+    가상의 테이블
+--view 만들기
+create or replace view  EMP_VIEW AS
+select employee_id, first_name, job_id, (commission_pct * salary) comm
+from employees;
+
+select * from emp_view;
+
+create or replace view  EMP_VIEW AS
+select employee_id, first_name, job_id, hire_date, (commission_pct * salary) comm
+from employees;
+
+--내가 자주 사용하는 컬럼(필요한 컬럼)을 view로 만들어서 쉽게 검색!
+--create view  EMP_VIEW AS 로 view를 만들 수도 있지만, 이후에 수정관리를
+하기 위해서는 반드시 create or replace view  EMP_VIEW AS로 만들어줘야한다.
+
+
+예문) 사원테이블에서 월급에 대한 순위를 매겨 출력하시오
+
+--rank() over( order by salary DESC ) sal_rank  순위를 매긴다.
+
+--view 만들기
+--create or replace view '별칭' AS
+
+create or replace view EMPLOYEE_VIEW AS
+select e.*,
+rank() over( order by salary DESC ) sal_rank 
+from (select * from employees) e
+order by sal_rank;
+
+create or replace view EMPLOYEE_VIEW AS
+select e.employee_id, e.first_name, e.salary, 
+rank() over( order by salary DESC ) sal_rank 
+from (select * from employees) e
+order by sal_rank;
+
+select * from EMPLOYEE_VIEW;
+
+---------------------------------------------------------------------------------------------------
+
+11. 테이블 생성하기!!
+primary key는 테이블 생성시 딱 한번만 만들어지고
+이후에 중복방지를 하기위해서는  unique를 사용한다.
+
+primary key, not null : 반드시 값을 넣어야 한다. (null값을 허용하지 않음..)
+
+create table member_t(
+	id VARCHAR2(30) primary key,  
+	pwd VARCHAR2(30) not null, --null 데이터를 추가하지 못한다.
+	name VARCHAR2(50),
+	email VARCHAR2(50) unique, --중복허용x 
+	phone VARCHAR2(50)
+);
+
+
+11-1. 컬럼추가(ADD)
+
+예문) member_t테이블에 reg_date라는 가입날짜 저장 컬럼을 추가해보자!
+
+ALTER table member_t ADD reg_date DATE;
+
+11-2. 컬럼수정(MODIFY)
+예문) member_t테이블의 name컬럼을 1001ㅏ이트를 저장할 수 있도록 수정
+ALTER table member_t MODIFY name VARCHAR2(100); 
+
+11-3. 컬럼삭제(DROP COLUMN)
+예문) member_t테이블의 phone 컬럼을 삭제해보자
+ALTER table member_t DROP COLUMN phone;
+
+11-4. 테이블 삭제
+예문) member_t 테이블 삭제
+DROP TABLE member_t;
+-- 기존에 있던 데이터들도 날아간다..
+
+---------------------------------------------------------------------------------------------------
+
+create table memo_t(
+	idx NUMBER(3) primary key,
+	title VARCHAR2(50) not null,
+	contant VARCHAR2(4000),
+	pwd VARCHAR2(20) not null,
+	writer VARCHAR2(100) not null,
+	write_date DATE	
+);
+
+12. 테이블에 자원 추가(insert)
+-- insert into '테이블 명' values(
+	
+);
+
+C : create
+R : insert
+U : update
+D : delete
+
+insert into MEMO_T values(1, '메모1', '내용1','1111','홍길동',sysdate);
+
+--반드시 위에서부터 순서에 맞춰서 내용을 넣어야한다.
+--또한 not null인 부분에 값을 넣지 않으면 오류..
+-- select를 제외한 insert, update, delete문을 반드시 'commit;'을 해줘야한다.
+--commit;을 통해 추가, 수정, 삭제하고자 하는 내용을 물리적으로 갱신시킬 수 있다.
+
+insert into MEMO_T values(2, '메모2', '내용2','2222','홍길동2',sysdate);
+
+commit;
+
+12-1. 자원수정(update)
+update memo_t set 
+pwd='1111', writer='홍길동'
+where idx = 1
+commit;
+
+-- update에 조건(where)을 쓰지 않으면 테이블의 모든 정보가 바뀐다.
+
+12-2. 자원 삭제(delete)
+--특정 자원을 삭제할 때 사용
+delete from memo_t; -- 테이블의 내용이 전부 지워진다.
+
+delete from memo_t
+where idx=2;
+commit;
+
+--delete문에는 * 가 없다..
+
+---------------------------------------------------------------------------------------------------
+
+13. 시퀀스 : 테이블에 순차적인 값을 자동으로 저장되도록 하는 객체
+
+13-1. 시퀀스 생성하기(create sequence 시퀀스명;)
+create sequence memo_seq;
+
+insert into MEMO_T values(memo_seq.nextval, '메모1', '내용1','1111','홍길동', sysdate);
+
+
+

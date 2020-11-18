@@ -1,0 +1,230 @@
+8-1.그룹화
+group by절 : 특정 컬럼이나 값을 기준으로 행을 묶어서 관리할 때 사용 
+                 그룹함수와 함께 사용함으로써 효과적으로 동작
+
+--group by절에서 그룹을 지정하기 위해 사용한 컬럼명은 
+  select절에서 그룹함수와 함께 사용이 가능.
+
+예문) 각 직종별 인원수를 출력
+select job_id, count(*) from employees
+group by job_id; 
+
+예문)각 부서별 급여의 평균과 총 합을 구하자
+select department_id, trunc(avg(salary)), sum(salary) from employees
+group by department_id;
+
+문제) 각 직종별 급여의 최대값과 최소값을 조회
+
+select job_id, salary, max(salary), min(salary) from employees
+group by job_id;
+
+문제) 사원테이블에서 부서별 급여의 합계, 사원수, 평균급여를 출력하되,
+     급여의 총합이 높은 순으로 정렬
+
+-- count(salary) = count(*) 똑같음..
+order by절은 마지막에 들어간다. 
+
+select department_id, sum(salary), count(*), trunc(avg(salary)) from employees
+group by department_id
+order by sum(salary) DESC;
+
+예문) 부서, 직종을 그룹화 한다.
+       그룹화된 결과를 부서번호, 직종, 인원수 순으로 출력
+select department_id, job_id, count(*) from employees
+group by department_id, job_id
+order by department_id ASC;
+
+문제) 부서번호, 직종, 급여의 합계, 직종별 사원수, 
+        직종별 평균급여를 화면에 출력
+        단, 부서번호가 낮은 순, 급여의 합이 높은 순으로 정렬하여 화면에 표시
+
+select department_id job_id, sum(salary), count(job_id), avg(salary) from employees
+group by department_id, job_id
+order by department_id ASC, sum(salary) DESC;
+
+----------------------------------------------------------------------------------------------
+8-2. 그룹화에서 조건부여
+-- 조건식을 사용할 때 그룹함수가 필요하다면 반드시 'having'키워드를 사용해야한다.
+    -- where은 사용할 수 없음 대신에 having을 써야한다.
+--조건식에 그룹함수가 포함이 되어 있다면 having을 쓰고,
+--조건식에 그룹함수가 포함이 되어 있지 않으면 where절을 쓴다.
+--그룹함수는 having!!
+-- 이외는 where!!
+    -- order by절은 항상 제일 마지막에 작성한다.
+
+예문) 각 부서의 급여의 최대값, 최소값, 인원수를 출력하자!
+       단, 급여의 최대값이 8000이상인 결과만 보여줄 것!
+
+select department_id, max(salary), min(salary), count(*) from employees
+group by department_id
+having max(salary) >= 8000
+order by department_id ASC;
+
+
+문제) 각 부서별 부서번호, 급여의 합, 평균, 인원수 순으로 출력
+단, 급여의 합이 30000이상인 경우만 출력하야하며,
+급여의 평균은 소수점 2자리에서 반올림하시오
+
+select department_id, sum(salary), round(avg(salary), 2), count(*) from employees
+group by department_id
+having sum(salary) >= 30000
+order by department_id;
+
+문제) 각 부서별 인원수가 20명이상인 부서의 정보를 부서번호, 급여의 합, 급여의 평균
+      인원수 순으로 출력 단, 급여의 평균은 소수점 2자리 반올림
+
+select department_id, sum(salary), round(avg(salary),2), count(*) from employees
+group by department_id
+having count(*) >= 20;
+
+문제) 각 부서별 평균 급여를 조회하시오
+단, 평균 급여가 10000미만인 그룹만 조회해야하며, 
+부서번호가 50 이하인 부서만 조회
+
+select department_id, trunc(avg(salary)) from employees
+group by department_id
+having department_id <= 50 and trunc(avg(salary)) <= 10000
+order by department_id;
+
+--조건식에 그룹함수가 포함이 되어 있다면 having을 쓰고,
+--조건식에 그룹함수가 포함이 되어 있지 않으면 where절을 쓴다.
+--그룹함수는 having!!
+-- 이외는 where!!
+
+select department_id, avg(salary) from employees
+where department_id <= 50
+group by department_id
+having avg(salary) < 10000;
+
+문제) 부서별, 직종별로 그룹화 하여 결과를 부서번호, 직종, 인원수 순으로 출력.
+   단, 직종이 'MAN'으로 끝나는 경우만 출력
+
+select department_id, job_id, count(*) from employees
+where job_id like '%MAN'
+group by department_id, job_id
+
+----------------------------------------------------------------------------------------------
+9. SubQuery : 특정 sql문장 안에 또 다른 sql문장이 포함되어 있는것.
+여러번 DB에 접근할 필요없이 한번에 데이터를 가져올 수 있다는 장점
+
+서브쿼리를 사용할 수 있는 곳.
+1) where, having
+2) select, delete문의 from절
+3) update문의 set 뒤에
+3) insert문의 into 뒤에
+
+예문) 사원 테이블에서 이름이 'Michael'이고 직종이 'MK_MAN'인
+       사원의 급여보다 많이 받는 사원들의 정보를 
+       사번, 이름, 직종, 급여 순으로 출력
+1) 이름이 Michael이고, 직종이 MK_MAN인 사원의 급여 구하기
+select salary from employees
+where first_name='Michael' and job_id = 'MK_MAN'; 	 --13000
+
+2)13000보다 급여가 높은 사원들의 정보
+select employee_id, first_name, job_id, salary from employees
+where salary > 13000;
+
+3)위의 두 쿼리문을 subquery를 통해 하나로 합쳐보자
+
+select employee_id, first_name, job_id, salary from employees
+where salary > (select salary from employees
+where first_name='Michael' and job_id = 'MK_MAN');
+
+문제) 사번이 150번인 사원의 급여와 같은 급여를 받는 사원들의 정보를
+사번, 이름, 급여 순으로 출력
+
+select employee_id, first_name, salary from employees
+where salary = ( select salary from employees
+where employee_id = 150);
+
+문제) 급여가 회사의 평균급여 이상인 사람들의 이름과 월급을 조회
+
+select first_name, salary from employees
+where salary >= (select trunc(avg(salary)) from employees);
+
+문제) Bruce와 같은 부서에서 근무하고 있는 사원들의 이름을 출력
+
+select first_name from employees
+where department_id= (select department_id from employees
+where first_name = 'Bruce');
+
+문제) 각 직종별 사원의 직종명, 평균급여를 조회하되, 
+       평균 급여가 Bruce보다 높은 사람들만 출력
+
+select job_id, avg(salary) from employees
+group by job_id
+having avg(salary) > (select salary from employees 
+where first_name = 'Bruce');
+
+문제) 사원테이블에서 last_name이 kochhar의 급여보다 
+        많이 받는 사원들의 사번, 성, 직종, 급여를 출력
+
+select employee_id, last_name, job_id, salary from employees
+where salary > (select salary from employees
+where lower(last_name) = 'kochhar');
+
+문제) 사원테이블에서 연봉이 가장 적은 사원의 사번, 이름, 급여를 출력
+
+select employee_id, first_name, salary from employees
+where salary = (select min(salary) from employees);
+
+
+문제) 사원테이블에서 직종이 'SA_REP'인 사원의 
+최소 급여보다 적으면서(미만) 직종이 'SH_CLERK'은 아닌 사원들의
+이름, 직종, 급여를 출력
+
+select first_name, job_id, salary from employees
+where not job_id = 'SH_CLERK' and salary < (select min(salary) from employees
+				         where job_id = 'SA_REP');
+
+select first_name, job_id, salary from employees
+where salary < (select min(salary) from employees where job_id = 'SA_REP')
+and job_id != 'SH_CLERK'; 
+
+-- and not job_id = 'SH_CLERK'; 
+-- and job_id not in('SH_CLERK');
+-- and job_id <> 'SH_CLERK'; 
+-- '<>'  =  '!=' 같은 뜻이다.
+
+문제) 사원테이블에서 100번 부서의 최소 급여보다 많이받는(초과)     
+        다른 모든 부서와 부서번호, 최소급여를 출력
+
+select department_id, min(salary) from employees
+group by department_id
+having min(salary) > (select min(salary) from employees
+where department_id = 100);
+
+문제) 사원테이블에서 성에 'Bat'이라는 단어를 포함하고 있는 사원과
+       같은 부서에서 근무하는 사원의 전체정보를 출력
+
+select * from employees
+where department_id = (select department_id from employees
+where lower(last_name) like '%bat%');
+
+문제) 사번이 111번인 사원의 직종과 같고 / 사번이 159번인 사원의 급여보다
+많이(초과) 받는 사원들의 정보를 사번, 이름, 직종, 급여 순으로 출력
+
+select job_id from employees
+where employee_id = 111;
+
+select salary from employees
+where employee_id = 159;
+
+select employee_id, first_name, job_id, salary from employees
+where job_id = (select job_id from employees
+where employee_id = 111) and salary > (select salary from employees
+where employee_id = 159);
+
+문제) 137번 사원보다 월급이 크거나 같고/ 149번 사원보다는 작거나 같은 사원의
+이름과 월급을 조회
+
+select salary from employees
+where employee_id = 137;  3600
+
+select salary from employees
+where employee_id = 149; 10500
+
+select first_name, salary from employees
+where salary between (select salary from employees
+where employee_id = 137) and (select salary from employees
+where employee_id = 149);
